@@ -65,10 +65,42 @@ mc admin config set myminio/ < myconfig
 #### 6. 重启野火Minio服务
 重启服务，好让设置生效，必须重启才行。
 
-#### 7. 配置野火IM
-野火IM的配置请参考专业版野火IM部署说明，更改完配置后重启。
+#### 7. 新建bucket
+用浏览器打开```http://192.168.1.101```（这里作为示例，实际使用时请换成客户服务的外网IP），然后点右下角的```+```，选择创建bucket。然后分别创建3个bucket，如下图所示：
+![bucket list](./asset/bucket_list.png)
 
-#### 8. 验证上传下载是否正常。
+设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加
+![edit_policy](./asset/bucket_policy.png)
+
+
+#### 8. 配置野火IM
+野火IM的配置请参考专业版野火IM部署说明，更改完配置后重启。
+```
+media.server_url  http://192.168.1.101
+media.access_key 0M7YVO70QPKBPWBZW5FW
+media.secret_key ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+
+## bucket名字及Domain
+media.bucket_general_name media
+media.bucket_general_domain http://192.168.1.101/media
+media.bucket_image_name media
+media.bucket_image_domain http://192.168.1.101/media
+media.bucket_voice_name media
+media.bucket_voice_domain http://192.168.1.101/media
+media.bucket_video_name media
+media.bucket_video_domain http://192.168.1.101/media
+media.bucket_file_name media
+media.bucket_file_domain http://192.168.1.101/media
+media.bucket_portrait_name storage
+media.bucket_portrait_domain http://192.168.1.101/media
+media.bucket_favorite_name storage
+media.bucket_favorite_domain http://192.168.1.101/media
+```
+> 上述参数为示例参数，请替换为客户对应的参数。
+> bucket media/storage为示例，客户实际使用时可以使用不同的名称。
+> 上传必须支持http上传（我们已经加密过了），因此```media.server_url```必须是http的，media.bucket_XXXX_domain可以增加https的支持。
+
+#### 9. 验证上传下载是否正常。
 验证上传下载是否正常。
 
 ## 鸣谢
