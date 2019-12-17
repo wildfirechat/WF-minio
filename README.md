@@ -76,6 +76,11 @@ mc admin config set myminio/ < myconfig
 #### 8. 配置野火IM
 野火IM的配置请参考专业版野火IM部署说明，更改完配置后重启。
 ```
+##存储使用类型，0使用内置文件服务器（仅供用于研发测试），1使用七牛云存储，2使用阿里云对象存储，3野火私有对象存储
+##除了内置文件服务器外，其他对象存储服务需要设置上传需要鉴权，下载不需要鉴权模式。下载的安全性在于生成对象的key为uuid，无法被穷举。
+media.server.media_type 3 ##这里改成3
+
+
 media.server_url  http://192.168.1.101
 media.access_key 0M7YVO70QPKBPWBZW5FW
 media.secret_key ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
