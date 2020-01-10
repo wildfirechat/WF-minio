@@ -33,11 +33,13 @@ Object API (Amazon S3 compatible):
 ```
 > 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。由于需要用到80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行.
 
-#### 3. 安装[mc](https://docs.min.io/docs/minio-client-quickstart-guide)工具。安装完成后，执行下面语句为Minio服务设置别名
+#### 3. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名
 ```shell script
-mc config host add myminio http://192.168.1.101 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+./mc config host add myminio http://192.168.1.101 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
 ```
 > 不需要在Minio服务所在的机器上运行，可以远程。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
+
+> mc工具只支持mac和linux
 
 #### 4. 获取Minio的配置
 ```shell script
