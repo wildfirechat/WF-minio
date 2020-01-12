@@ -13,15 +13,15 @@ minio  server /minio-data
 ```
 运行成功后会有如下的提示
 ```
-Endpoint:  http://192.168.1.101  http://127.0.0.1            
+Endpoint:  http://47.52.118.96  http://127.0.0.1            
 AccessKey: 0M7YVO70QPKBPWBZW5FW
 SecretKey: ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
 
 Browser Access:
-   http://192.168.1.101  http://127.0.0.1            
+   http://47.52.118.96  http://127.0.0.1            
 
 Command-line Access: https://docs.min.io/docs/minio-client-quickstart-guide
-   $ mc config host add myminio http://192.168.1.101 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+   $ mc config host add myminio http://47.52.118.96 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
 
 Object API (Amazon S3 compatible):
    Go:         https://docs.min.io/docs/golang-client-quickstart-guide
@@ -35,7 +35,7 @@ Object API (Amazon S3 compatible):
 
 #### 3. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名
 ```shell script
-./mc config host add myminio http://192.168.1.101 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+./mc config host add myminio http://47.52.118.96 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
 ```
 > 不需要在Minio服务所在的机器上运行，可以远程。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
 
@@ -68,7 +68,7 @@ mc admin config set myminio/ < myconfig
 重启服务，好让设置生效，必须重启才行。
 
 #### 7. 新建bucket
-用浏览器打开```http://192.168.1.101```（这里作为示例，实际使用时请换成客户服务的外网IP），然后点右下角的```+```，选择创建bucket。然后分别创建3个bucket，如下图所示：
+用浏览器打开```http://47.52.118.96```（这里作为示例，实际使用时请换成客户服务的外网IP），然后点右下角的```+```，选择创建bucket。然后分别创建3个bucket，如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
 设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加
@@ -82,26 +82,27 @@ mc admin config set myminio/ < myconfig
 ##除了内置文件服务器外，其他对象存储服务需要设置上传需要鉴权，下载不需要鉴权模式。下载的安全性在于生成对象的key为uuid，无法被穷举。
 media.server.media_type 3 ##这里改成3
 
-
-media.server_url  http://192.168.1.101
+## minio服务地址，要求是公网地址
+media.server_url  http://47.52.118.96
 media.access_key 0M7YVO70QPKBPWBZW5FW
 media.secret_key ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
 
-## bucket名字及Domain
+## bucket名字
 media.bucket_general_name media
-media.bucket_general_domain http://192.168.1.101/media
+## domain为minio服务器地址/bucket名字。不是服务器地址/minio/bucket名字，如下所示
+media.bucket_general_domain http://47.52.118.96/media
 media.bucket_image_name media
-media.bucket_image_domain http://192.168.1.101/media
+media.bucket_image_domain http://47.52.118.96/media
 media.bucket_voice_name media
-media.bucket_voice_domain http://192.168.1.101/media
+media.bucket_voice_domain http://47.52.118.96/media
 media.bucket_video_name media
-media.bucket_video_domain http://192.168.1.101/media
+media.bucket_video_domain http://47.52.118.96/media
 media.bucket_file_name media
-media.bucket_file_domain http://192.168.1.101/media
+media.bucket_file_domain http://47.52.118.96/media
 media.bucket_portrait_name storage
-media.bucket_portrait_domain http://192.168.1.101/media
+media.bucket_portrait_domain http://47.52.118.96/media
 media.bucket_favorite_name storage
-media.bucket_favorite_domain http://192.168.1.101/media
+media.bucket_favorite_domain http://47.52.118.96/media
 ```
 > 上述参数为示例参数，请替换为客户对应的参数。
 > bucket media/storage为示例，客户实际使用时可以使用不同的名称。
@@ -109,6 +110,22 @@ media.bucket_favorite_domain http://192.168.1.101/media
 
 #### 9. 验证上传下载是否正常。
 验证上传下载是否正常。
+
+## 进阶配置
+#### 1. 使用域名
+配置域名解析到minio服务器，然后配置文件中的ip替换成域名即可。
+
+#### 2. 配置https
+上传必须是http，http method是```put```。可以下载配置为https。首先用如下命令启动，更换minio服务的端口为9000
+```
+./minio server --address 47.52.118.96:9000 /minio-data
+```
+然后配置nginx，反向代理到80端口，配置证书，使其能够同时支持HTTP/HTTPS双栈，注意中转时要把```http header```都带上。
+
+最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址。
+
+#### 3. 配置CDN加速
+如果客户比较多，且全国甚至全世界分别比较广，使用dns能够提高下载速度，提高用户体验。可以对下载进行dns加速，然后正确配置```media.bucket_XXXX_domain```。
 
 ## 鸣谢
 感谢[Minio](https://github.com/minio/minio)提供如此棒的开源产品
