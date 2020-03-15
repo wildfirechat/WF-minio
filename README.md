@@ -8,29 +8,32 @@
 
 综上OSS服务与IM系统没有直接的交互，唯一需要就是能访问IM数据库。
 
-## 配置方法
-
-#### 1. 环境配置
+## 环境要求
 OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务与IM系统没有直接的联系，OSS服务需要访问IM数据库，所以防火墙可以禁止除了IM数据库以外的所有主动出访，限制除80以外的所有入访。
 
-#### 2.启动野火IM服务
+## 升级方法
+如果已经部署需要按照升级步骤进行。升级方法：
+1. 停掉minio服务。
+2. 备份```~/.minio```和```${minio_data_path}/.minio.sys```目录。备份旧的程序文件。
+3. 然后删除上述两个目录。注意minio数据目录其它文件夹一定要保留，防止丢失数据。
+4. 按照下面首次部署方法进行部署。注意部署成功后需要再次设置Policy。
+5. 如果部署失败，恢复旧的程序文件和步骤2的两个文件夹。
+
+## 首次部署
+
+#### 1.启动野火IM服务
 启动野火IM服务，创建数据库，后面Minio需要用到野火IM的数据库
 
-#### 3.启动野火Minio服务
+#### 2.启动野火Minio服务
 ```sh
 minio  server /minio-data
 ```
 运行成功后会有如下的提示
 ```
-Endpoint:  http://47.52.118.96  http://127.0.0.1            
-AccessKey: 0M7YVO70QPKBPWBZW5FW
-SecretKey: ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+Endpoint:  http://10.255.20.59  http://127.0.0.1
 
 Browser Access:
-   http://47.52.118.96  http://127.0.0.1            
-
-Command-line Access: https://docs.min.io/docs/minio-client-quickstart-guide
-   $ mc config host add myminio http://47.52.118.96 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+   http://10.255.20.59  http://127.0.0.1
 
 Object API (Amazon S3 compatible):
    Go:         https://docs.min.io/docs/golang-client-quickstart-guide
@@ -40,51 +43,29 @@ Object API (Amazon S3 compatible):
    .NET:       https://docs.min.io/docs/dotnet-client-quickstart-guide
 
 ```
-> 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。由于需要用到80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行.
+> 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。由于需要用到80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。可能会提醒密码简单需要修改初始密码。
 
-#### 4. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名
-```shell script
-./mc config host add myminio http://47.52.118.96 0M7YVO70QPKBPWBZW5FW ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
-```
-> 不需要在Minio服务所在的机器上运行，可以远程。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
-
-> mc工具只支持mac和linux
-
-#### 5. 获取Minio的配置
-```shell script
-mc admin config get myminio/ > myconfig
-```
-> 如果出现错误，请确认当前客户端是否跟Minio能够连通，Minio服务是否正常运行。
-
-#### 6. 更改Minio的配置如下
+#### 3. 更改Minio的配置
+停掉Minio服务，然后编辑```${minio_data_path}/.minio.sys/config/config.json```，在配置文件的最后的大括号之前添加：
 ```text
- "WFChat": {
-  "DefaultSecret": "00,11,22,33,44,55,66,77,78,79,7A,7B,7C,7D,7E,7F",
-  "MySQLAddr": "192.168.1.199:3306",
-  "MySQLDB": "wfchat",
-  "MySQLPassword": "123456",
-  "MySQLUserName": "root"
- },
+ "WFChat":{"_":[{"key":"DefaultSecret","value":"00,11,22,33,44,55,66,77,78,79,7A,7B,7C,7D,7E,7F"},{"key":"MySQLAddr","value":"192.168.3.180:3306"},{"key":"MySQLDB","value":"wfchat"},{"key":"MySQLUserName","value":"root"},{"key":"MySQLPassword","value":"123456"}]}
 ```
-> ```DefaultSecret```需要配置IM服务参数```client.proto.secret_key```相同的值，可以保存默认不变，如果改动这里需要使用16进制，并把```0X```去掉。
+> ```DefaultSecret```需要配置IM服务参数```client.proto.secret_key```相同的值，这个值不能改变，需要把```0X```去掉。
 > MySQL的地址正确配置就行。注意与野火IM MySQL配置的格式不通，保持当前这种格式。
 
-执行下面语句，更新配置
-```text
-mc admin config set myminio/ < myconfig
-```
-#### 7. 重启野火Minio服务
+修改配置文件中的```access_key```和```secret_key```，注意要足够复杂才行，如果是升级，可以使用旧的配置文件的AK/SK。
+#### 4. 重启野火Minio服务
 重启服务，好让设置生效，必须重启才行。
 
-#### 8. 新建bucket
-用浏览器打开```http://47.52.118.96```（这里作为示例，实际使用时请换成客户服务的外网IP），然后点右下角的```+```，选择创建bucket。然后分别创建3个bucket，如下图所示：
+#### 5. 新建bucket
+用浏览器打开```http://47.52.118.96```（这里作为示例，实际使用时请换成客户服务的外网IP），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket。然后分别创建3个bucket，如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
-设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加
+设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加如下，注意升级部署也需要再次设置
 ![edit_policy](./asset/bucket_policy.png)
 
 
-#### 9. 配置野火IM
+#### 6. 配置野火IM
 野火IM的配置请参考专业版野火IM部署说明，更改完配置后重启。
 ```
 ##存储使用类型，0使用内置文件服务器（仅供用于研发测试），1使用七牛云存储，2使用阿里云对象存储，3野火私有对象存储
@@ -114,10 +95,14 @@ media.bucket_favorite_name storage
 media.bucket_favorite_domain http://47.52.118.96/media
 ```
 > 上述参数为示例参数，请替换为客户对应的参数。
-> bucket media/storage为示例，客户实际使用时可以使用不同的名称。
+
+> bucket media/storage为示例，客户实际使用时可以使用不同的名称。但至少要创建2个用来存储长期保存和短期保存的媒体文件，建议为上述7类每类创建一个bucket。
+
 > 上传必须支持http上传（我们已经加密过了），因此```media.server_url```必须是http的，media.bucket_XXXX_domain可以增加https的支持。
 
-#### 10. 验证上传下载是否正常。
+> 如果是升级，需要确认AK/SK是否变动，如果改变了，需要同步修改
+
+#### 7. 验证上传下载是否正常。
 验证上传下载是否正常。
 
 ## 进阶配置
@@ -129,7 +114,7 @@ media.bucket_favorite_domain http://47.52.118.96/media
 ```
 ./minio server --address 47.52.118.96:9000 /minio-data
 ```
-然后配置nginx，反向代理到80端口，配置证书，使其能够同时支持HTTP/HTTPS双栈，注意中转时要把```http header```都带上。
+然后配置nginx，反向代理到80端口，配置证书，使其能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
 最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址。
 
