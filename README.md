@@ -45,19 +45,29 @@ Object API (Amazon S3 compatible):
 ```
 > 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。由于需要用到80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。可能会提醒密码简单需要修改初始密码。
 
-#### 3. 更改Minio的配置
-停掉Minio服务，然后编辑```${minio_data_path}/.minio.sys/config/config.json```，在配置文件的最后的大括号之前添加：
-```text
- "WFChat":{"_":[{"key":"DefaultSecret","value":"00,11,22,33,44,55,66,77,78,79,7A,7B,7C,7D,7E,7F"},{"key":"MySQLAddr","value":"192.168.3.180:3306"},{"key":"MySQLDB","value":"wfchat"},{"key":"MySQLUserName","value":"root"},{"key":"MySQLPassword","value":"123456"}]}
+#### 3. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名
+```shell script
+./mc config host add myminio http://47.52.118.96 minioadmin minioadmin
 ```
-> ```DefaultSecret```需要配置IM服务参数```client.proto.secret_key```相同的值，这个值不能改变，需要把```0X```去掉。
-> MySQL的地址正确配置就行。注意与野火IM MySQL配置的格式不通，保持当前这种格式。
+> 不需要在Minio服务所在的机器上运行，可以远程。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
 
-修改配置文件中的```access_key```和```secret_key```，注意要足够复杂才行，如果是升级，可以使用旧的配置文件的AK/SK。
-#### 4. 重启野火Minio服务
-重启服务，好让设置生效，必须重启才行。
+> 最后两个参数为AK/SK，需要使用正确的值，第二步启动的控制台日志中会有。
 
-#### 5. 新建bucket
+#### 4. 更新Minio的野火IM配置
+```shell script
+./mc admin config set myminio WFChat DefaultSecret=00,11,22,33,44,55,66,77,78,79,7A,7B,7C,7D,7E,7F MySQLAddr=192.168.1.100:3306 MySQLDB=wfchat MySQLUserName=root MySQLPassword=123456
+```
+> ```DefaultSecret```需要配置IM服务参数```client.proto.secret_key```相同的值，必须保存默认不变。
+
+> MySQL的地址正确配置就行。注意与野火IM MySQL配置的格式不通，保持当前这种格式。正确配置mysql的地址，数据库名称，用户名和密码。
+
+#### 5. 重启野火Minio服务
+重启服务，好让设置生效，必须重启才行。使用如下命令重启
+```
+./mc admin service restart myminio
+```
+
+#### 6. 新建bucket
 用浏览器打开```http://47.52.118.96```（这里作为示例，实际使用时请换成客户服务的外网IP），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket。然后分别创建3个bucket，如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
@@ -65,7 +75,7 @@ Object API (Amazon S3 compatible):
 ![edit_policy](./asset/bucket_policy.png)
 
 
-#### 6. 配置野火IM
+#### 7. 配置野火IM
 野火IM的配置请参考专业版野火IM部署说明，更改完配置后重启。
 ```
 ##存储使用类型，0使用内置文件服务器（仅供用于研发测试），1使用七牛云存储，2使用阿里云对象存储，3野火私有对象存储
@@ -102,7 +112,7 @@ media.bucket_favorite_domain http://47.52.118.96/media
 
 > 如果是升级，需要确认AK/SK是否变动，如果改变了，需要同步修改
 
-#### 7. 验证上传下载是否正常。
+#### 8. 验证上传下载是否正常。
 验证上传下载是否正常。
 
 ## 进阶配置
