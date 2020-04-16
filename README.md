@@ -26,6 +26,7 @@ OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行
 
 #### 2.启动野火Minio服务
 ```sh
+## minio-data 为数据目录，需要运行前创建好，且具有读写权限。
 minio  server /minio-data
 ```
 运行成功后会有如下的提示
@@ -117,9 +118,12 @@ media.bucket_favorite_domain http://47.52.118.96/media
 
 ## 进阶配置
 #### 1. 使用域名
-配置域名解析到minio服务器，然后配置文件中的ip替换成域名即可。
+配置域名解析到minio服务器，然后IM服务配置文件中的IP替换成域名。这样如果以后迁移存储服务也不会有问题。
 
-#### 2. 配置https
+#### 2. 集群部署
+只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档。
+
+#### 3. 配置https
 上传必须是http，http method是```put```。可以下载配置为https。首先用如下命令启动，更换minio服务的端口为9000
 ```
 ./minio server --address 47.52.118.96:9000 /minio-data
@@ -128,7 +132,7 @@ media.bucket_favorite_domain http://47.52.118.96/media
 
 最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址。
 
-#### 3. 配置CDN加速
+#### 4. 配置CDN加速
 如果客户比较多，且全国甚至全世界分别比较广，使用dns能够提高下载速度，提高用户体验。可以对下载进行dns加速，然后正确配置```media.bucket_XXXX_domain```。
 
 ## 鸣谢
