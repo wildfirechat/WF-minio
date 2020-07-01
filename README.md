@@ -100,10 +100,14 @@ media.bucket_video_name media
 media.bucket_video_domain http://47.52.118.96/media
 media.bucket_file_name media
 media.bucket_file_domain http://47.52.118.96/media
+media.bucket_sticker_name media
+media.bucket_sticker_domain http://47.52.118.96/media
+media.bucket_moments_name media
+media.bucket_moments_domain http://47.52.118.96/media
 media.bucket_portrait_name storage
-media.bucket_portrait_domain http://47.52.118.96/media
+media.bucket_portrait_domain http://47.52.118.96/storage
 media.bucket_favorite_name storage
-media.bucket_favorite_domain http://47.52.118.96/media
+media.bucket_favorite_domain http://47.52.118.96/storage
 ```
 > 上述参数为示例参数，请替换为客户对应的参数。
 
