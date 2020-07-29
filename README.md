@@ -6,12 +6,10 @@
 1. 上传：客户端需要上传时，先调用IM服务获取上传的token，IM服务根据配置里的信息计算出一个token（不需要与OSS进行调用）返回给客户端，客户端用自己的私钥把数据加密后用IM服务返回的token上传。OSS收到请求后验证token，验证通过后，在去IM服务的数据库获取用户的私钥进行解密保存文件。
 2. 下载：客户端直接请求OSS服务。
 
-综上OSS服务与IM系统没有直接的交互，唯一需要就是能访问IM数据库。
+综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过server api进行，也可以选择直接读取IM服务数据库。
 
 ## 环境要求
-OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务与IM系统没有直接的联系，OSS服务需要访问IM数据库，所以防火墙可以禁止除了IM数据库以外的所有主动出访，限制除80以外的所有入访。
-
-由于需要访问IM服务器，所以IM服务必须不能使用h2db，可以使用mysql数据库或其它数据库。
+OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，如果通过访问IM数据库的方式，需要确保能够读取IM数据库，可以限制除了需要的端口以外的所有出访。OSS服务需要限制除80以外的所有入访。
 
 ## 升级方法
 如果已经部署需要按照升级步骤进行。升级方法：
@@ -57,6 +55,14 @@ Object API (Amazon S3 compatible):
 > 最后两个参数为AK/SK，需要使用正确的值，第二步启动的控制台日志中会有。
 
 #### 4. 更新Minio的野火IM配置
+OSS服务有两种方法获取用户的密钥用来加密，一种是通过server api，在2020.7.29号之后的专业版本都支持，建议用这种方法：
+```
+./mc admin config set myminio WFChat IMAdminUrl=http://${im_server_address}:18080/admin/minio/sk IMAdminSecret=${im_server_admin_secret}
+```
+> IMAdminUrl是server api地址，需要确保minio服务与IM服务管理端口的连通性。IMAdminSecret为server api的密钥。
+
+
+如果IM服务是2020.7.29号之前，只能支持读取IM服务的数据库获取用户secret，而且数据库只能用mysql，别的数据库都不支持。请使用下面配置
 ```shell script
 ./mc admin config set myminio WFChat DefaultSecret=00,11,22,33,44,55,66,77,78,79,7A,7B,7C,7D,7E,7F MySQLAddr=192.168.1.100:3306 MySQLDB=wfchat MySQLUserName=root MySQLPassword=123456
 ```
