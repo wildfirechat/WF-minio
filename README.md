@@ -149,17 +149,18 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 
 ## 常见问题
 #### 1. 试用nginx反向代理后，不能发送大文件
-这是因为nginx默认不能发送大文件，请把最大文件限制改为100M，最大超时时间改为30分钟。如下所示：
+这是因为nginx默认不能发送大文件，请把最大文件限制改为200M，最大超时时间改为60分钟。如下所示：
 ```
 #上传文件大小限制
-client_max_body_size 1024M;
+client_max_body_size 2048M;
 
 #设置为on表示启动高效传输文件的模式
 sendfile on;
 
 #保持连接的时间，默认65s
-keepalive_timeout 1800;
+keepalive_timeout 3600;
 ```
+> 如果需要支持大文件传输，则需要更大的配置
 
 ## 鸣谢
 感谢[Minio](https://github.com/minio/minio)提供如此棒的开源产品
