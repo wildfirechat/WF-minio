@@ -59,7 +59,7 @@ OSS服务有两种方法获取用户的密钥用来加密，一种是通过serve
 ```
 ./mc admin config set myminio WFChat IMAdminUrl=http://${im_server_address}:18080/admin/minio/sk IMAdminSecret=${im_server_admin_secret}
 ```
-> IMAdminUrl是server api地址，需要确保minio服务与IM服务管理端口的连通性。IMAdminSecret为server api的密钥。
+> IMAdminUrl是server api地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对于修改。IMAdminSecret为server api的密钥。
 
 
 如果IM服务是2020.7.29号之前，只能支持读取IM服务的数据库获取用户secret，而且数据库只能用mysql，别的数据库都不支持。请使用下面配置
@@ -70,7 +70,7 @@ OSS服务有两种方法获取用户的密钥用来加密，一种是通过serve
 
 > MySQL的地址正确配置就行。注意与野火IM MySQL配置的格式不通，保持当前这种格式。正确配置mysql的地址，数据库名称，用户名和密码。
 
-如果IM服务使用国密加密，需要执行下面操作开启国密加密。注意这个一般只有特殊客户才需要，普通客户请忽略此配置。
+如果IM服务使用国密加密，需要执行下面操作开启国密加密。注意只有特殊客户才配置此项，普通客户请忽略此配置。
 ```
 ./mc admin config set myminio WFChat SM4Encrypt=on
 ```
@@ -155,7 +155,7 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 
 ## 常见问题
 #### 1. 试用nginx反向代理后，不能发送大文件
-这是因为nginx默认不能发送大文件，请把最大文件限制改为200M，最大超时时间改为60分钟。如下所示：
+这是因为nginx默认不能发送大文件，请把最大文件限制改为2G，最大超时时间改为60分钟。如下所示：
 ```
 #上传文件大小限制
 client_max_body_size 2048M;
@@ -166,7 +166,8 @@ sendfile on;
 #保持连接的时间，默认65s
 keepalive_timeout 3600;
 ```
-> 如果需要支持大文件传输，则需要更大的配置
+#### 2. 上传文件失败，minio服务抛出异常
+检查日志异常调用栈中是否有```wfchat.getUserSecret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
 
 ## 鸣谢
 感谢[Minio](https://github.com/minio/minio)提供如此棒的开源产品
