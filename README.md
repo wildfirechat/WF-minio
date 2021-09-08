@@ -169,5 +169,19 @@ keepalive_timeout 3600;
 #### 2. 上传文件失败，minio服务抛出异常
 检查日志异常调用栈中是否有```wfchat.getUserSecret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
 
+#### 3. 使用nginx反向没有转发header
+header中带有用户id信息，这样minio可以查找到对应用户id的密钥，用来解密上传的内容。请确保转发时带上所有header，下面为参考配置 ：
+```
+location / {
+        proxy_set_header  Host  $host;
+        proxy_set_header  X-real-ip $remote_addr;
+        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass  http://minio_cluster;
+}
+```
+
+#### 4. 不要修改minio的region
+IM服务内默认使用的region是```us-east-1 ```，是默认的minio的region，请使用这个默认的region，不能修改为其他值。这个值实际使用上没有其他的意义。
+
 ## 鸣谢
 感谢[Minio](https://github.com/minio/minio)提供如此棒的开源产品
