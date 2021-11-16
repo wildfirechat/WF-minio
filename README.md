@@ -173,7 +173,7 @@ keepalive_timeout 3600;
 header中带有用户id信息，这样minio可以查找到对应用户id的密钥，用来解密上传的内容。请确保转发时带上所有header，下面为参考配置 ：
 ```
 location / {
-        proxy_set_header  Host  $host;
+        proxy_set_header  Host  $http_host;
         proxy_set_header  X-real-ip $remote_addr;
         proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_pass  http://minio_cluster;
