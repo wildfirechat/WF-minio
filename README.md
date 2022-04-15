@@ -94,17 +94,22 @@ OSS服务有两种方法获取用户的密钥用来加密，一种是通过serve
 野火IM的配置请参考专业版野火IM部署说明，更改完配置后重启。
 ```
 ##存储使用类型，0使用内置文件服务器（仅供用于研发测试），1使用七牛云存储，2使用阿里云对象存储，3野火私有对象存储
-##除了内置文件服务器外，其他对象存储服务需要设置上传需要鉴权，下载不需要鉴权模式。下载的安全性在于生成对象的key为uuid，无法被穷举。
-media.server.media_type 3 ##这里改成3
+##除了内置文件服务器外，其他对象存储服务需要设置上传需要鉴权，下载不需要鉴权模式。
+##这里改成3
+media.server.media_type 3
 
-## minio服务地址，要求是公网地址
-media.server_url  http://47.52.118.96
-media.access_key 0M7YVO70QPKBPWBZW5FW
-media.secret_key ZrBsSST++1Qjap+Nfs3P2BujHCHDuqrsrYi0zNn8
+## minio服务地址，要求是域名或者公网IP，不用加http头
+media.server_url  47.52.118.96
+## 如果是非80端口，需要在这里配置，不能写到server_url中去，另外下面media.bucket_XXXX_domain的地址也要加上端口。
+media.server_port 80
+media.server_ssl_port 443
+## AK/SK minio服务启动时会打印出来AK/SK，默认是minioadmin，需求修改复杂字符串。
+media.access_key minioadmin
+media.secret_key minioadmin
 
 ## bucket名字
 media.bucket_general_name media
-## domain为minio服务器地址/bucket名字。不是服务器地址/minio/bucket名字，如下所示
+## domain为minio服务器地址/bucket名字,不是服务器地址/minio/bucket名字。如果非80端口还要加上端口号。
 media.bucket_general_domain http://47.52.118.96/media
 media.bucket_image_name media
 media.bucket_image_domain http://47.52.118.96/media
@@ -129,7 +134,6 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 
 > 上传必须支持http上传（我们已经加密过了），因此```media.server_url```必须是http的，media.bucket_XXXX_domain可以增加https的支持。
 
-> 如果是升级，需要确认AK/SK是否变动，如果改变了，需要同步修改
 
 #### 8. 验证上传下载是否正常。
 验证上传下载是否正常。
