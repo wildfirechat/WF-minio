@@ -6,10 +6,10 @@
 1. 上传：客户端需要上传时，先调用IM服务获取上传的token，IM服务根据配置里的信息计算出一个token（不需要与OSS进行调用）返回给客户端，客户端用自己的私钥把数据加密后用IM服务返回的token上传。OSS收到请求后验证token，验证通过后，在去通过IM服务的API获取用户的私钥进行解密保存文件。
 2. 下载：客户端直接请求OSS服务。如果bucket禁止非授权访问，客户端可以调用getAuthorizedMediaUrl方法来获取经过授权的URI进行访问，这个如上传一样，由服务器端计算出授权。一般建议头像和动态表情运行非授权访问，其它重要文件可以配置成授权访问。
 
-综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过server api进行，也可以选择直接读取IM服务数据库。
+综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过server api进行。
 
 ## 环境要求
-OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，如果通过访问IM数据库的方式，需要确保能够读取IM数据库，可以限制除了需要的端口以外的所有出访。OSS服务需要限制除80以外的所有入访。
+OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。
 
 ## 升级方法
 如果已经部署需要按照升级步骤进行。升级方法：
@@ -22,12 +22,12 @@ OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行
 ## 首次部署
 
 #### 1.启动野火IM服务
-启动野火IM服务，创建数据库，后面Minio需要用到野火IM的数据库
+启动野火IM服务，创建数据库，后面Minio需要用到野火IM的管理端口。
 
 #### 2.启动野火Minio服务
 ```sh
 ## minio-data 为数据目录，需要运行前创建好，且具有读写权限。
-minio  server /minio-data
+./minio server /minio-data
 ```
 运行成功后会有如下的提示
 ```
@@ -50,25 +50,17 @@ Object API (Amazon S3 compatible):
 ```shell script
 ./mc config host add myminio http://47.52.118.96 minioadmin minioadmin
 ```
-> 不需要在Minio服务所在的机器上运行，可以远程。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
+> 可以在Minio服务所在的机器上本地运行也可以远程执行。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
 
 > 最后两个参数为AK/SK，需要使用正确的值，第二步启动的控制台日志中会有。
 
+> 如果Minio服务的端口不是80，请在命令中的地址加上端口。
+
 #### 4. 更新Minio的野火IM配置
-OSS服务有两种方法获取用户的密钥用来加密，一种是通过server api，在2020.7.29号之后的专业版本都支持，建议用这种方法：
 ```
 ./mc admin config set myminio WFChat IMAdminUrl=http://${im_server_address}:18080/admin/minio/sk IMAdminSecret=${im_server_admin_secret}
 ```
-> IMAdminUrl是server api地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对于修改。IMAdminSecret为server api的密钥。
-
-
-如果IM服务是2020.7.29号之前，只能支持读取IM服务的数据库获取用户secret，而且数据库只能用mysql，别的数据库都不支持。请使用下面配置
-```shell script
-./mc admin config set myminio WFChat DefaultSecret=00,11,22,33,44,55,66,77,78,79,7A,7B,7C,7D,7E,7F MySQLAddr=192.168.1.100:3306 MySQLDB=wfchat MySQLUserName=root MySQLPassword=123456
-```
-> ```DefaultSecret```需要配置IM服务参数```client.proto.secret_key```相同的值，必须保存默认不变。
-
-> MySQL的地址正确配置就行。注意与野火IM MySQL配置的格式不通，保持当前这种格式。正确配置mysql的地址，数据库名称，用户名和密码。
+> IMAdminUrl是server api地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对应修改。IMAdminSecret为server api的密钥。
 
 如果IM服务使用国密加密，需要执行下面操作开启国密加密。注意只有特殊客户才配置此项，普通客户请忽略此配置。
 ```
@@ -83,7 +75,7 @@ OSS服务有两种方法获取用户的密钥用来加密，一种是通过serve
 ```
 
 #### 6. 新建bucket
-用浏览器打开```http://47.52.118.96```（这里作为示例，实际使用时请换成客户服务的外网IP），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket，创建2个bucket，如下图所示：
+用浏览器打开```http://47.52.118.96```（这里作为示例，实际使用时请换成客户服务的外网IP），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket，创建至少2个bucket（建议每个桶建一个，桶的列表见下面配置），如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
 设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加如下，注意升级部署也需要再次设置
@@ -130,13 +122,13 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 ```
 > 上述参数为示例参数，请替换为客户对应的参数。
 
-> bucket media/storage为示例，客户实际使用时可以使用不同的名称。但至少要创建2个用来存储长期保存和短期保存的媒体文件，建议为上述7类每类创建一个bucket。
+> bucket media/storage为示例，客户实际使用时可以使用不同的名称。但至少要创建2个用来存储长期保存和短期保存的媒体文件，建议为上述9类每类创建一个bucket。
 
-> 上传必须支持http上传（我们已经加密过了），因此```media.server_url```必须是http的，media.bucket_XXXX_domain可以增加https的支持。
+> 上传必须支持http上传（因为移动端和PC端只能支持http上传，不用担心安全问题，因为数据是经过加密过的），因此不能屏蔽掉http访问，media.bucket_XXXX_domain建议增加https的支持。
 
 
 #### 8. 验证上传下载是否正常。
-验证上传下载是否正常。
+验证发送图片/语音/视频/文件等媒体类消息，验证修改用户头像，验证大文件上传。
 
 ## 进阶配置
 #### 1. 使用域名
@@ -150,7 +142,7 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 ```
 ./minio server --address 47.52.118.96:9000 /minio-data
 ```
-然后配置nginx，反向代理到80端口，配置证书，使其能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
+然后配置nginx，反向代理到80端口，另外反向代理到443并配置证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
 最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址。
 
@@ -171,9 +163,9 @@ sendfile on;
 keepalive_timeout 3600;
 ```
 #### 2. 上传文件失败，minio服务抛出异常
-检查日志异常调用栈中是否有```wfchat.getUserSecret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
+检查日志异常调用栈中是否有```get user secret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
 
-#### 3. 使用nginx反向没有转发header
+#### 3. 使用nginx反向代理没有转发header
 header中带有用户id信息，这样minio可以查找到对应用户id的密钥，用来解密上传的内容。请确保转发时带上所有header，下面为参考配置 ：
 ```
 location / {
@@ -186,6 +178,13 @@ location / {
 
 #### 4. 不要修改minio的region
 IM服务内默认使用的region是```us-east-1 ```，是默认的minio的region，请使用这个默认的region，不能修改为其他值。这个值实际使用上没有其他的意义。
+
+#### 5. 其它问题
+如果还是无法解决问题，请把minio控制台日志和tcpdump日志一起发给我们。抓去tcpdump日志的命令如下：
+```
+tcpdump -w minio.pcap
+```
+客户端操作，等待失败后，ctrl+c结束命令，日志在当前目录的minio.pcap文件。
 
 ## 鸣谢
 感谢[Minio](https://github.com/minio/minio)提供如此棒的开源产品
