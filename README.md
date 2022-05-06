@@ -130,6 +130,9 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 #### 8. 验证上传下载是否正常。
 验证发送图片/语音/视频/文件等媒体类消息，验证修改用户头像，验证大文件上传。
 
+#### 9. 配置HTTPS
+野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传。在client层上传时没有经过加密，所以为了安全需要配置HTTPS，通过HTTPS进行上传。因此需要配置minio服务同时支持http和https。配置方向见下面说明。
+
 ## 进阶配置
 #### 1. 使用域名
 配置域名解析到minio服务器，然后IM服务配置文件中的IP替换成域名。这样如果以后迁移存储服务也不会有问题。
@@ -138,13 +141,13 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档。
 
 #### 3. 配置https
-上传必须是http，http method是```put```。可以下载配置为https。首先用如下命令启动，更换minio服务的端口为9000
+客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。首先用如下命令启动，更换minio服务的端口为9000
 ```
-./minio server --address 47.52.118.96:9000 /minio-data
+./minio server --address 192.168.1.127:9000 /minio-data
 ```
 然后配置nginx，反向代理到80端口，另外反向代理到443并配置证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
-最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址。
+最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址，```media.server_ssl_port```为ssl的端口。
 
 #### 4. 配置CDN加速
 如果客户比较多，且全国甚至全世界分别比较广，使用dns能够提高下载速度，提高用户体验。可以对下载进行dns加速，然后正确配置```media.bucket_XXXX_domain```。
@@ -154,7 +157,7 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 这是因为nginx默认不能发送大文件，请把最大文件限制改为2G，最大超时时间改为60分钟。如下所示：
 ```
 #上传文件大小限制
-client_max_body_size 2048M;
+client_max_body_size 4096M;
 
 #设置为on表示启动高效传输文件的模式
 sendfile on;
