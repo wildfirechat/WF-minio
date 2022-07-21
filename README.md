@@ -9,7 +9,7 @@
 综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过server api进行。
 
 ## 环境要求
-OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。OSS服务还有一个管理端口，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。
+OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。OSS服务还有一个管理端口，仅用于Minio管理后台登陆管理，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。
 
 ## 升级方法
 如果已经部署需要按照升级步骤进行。升级方法：
@@ -23,8 +23,8 @@ OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行
 
 #### 1.启动野火Minio服务
 ```sh
-## minio-data 为数据目录，需要运行前创建好，且具有读写权限。管理端口是9002，可以改成别的端口。
-./minio server --console-address :9002 /minio-data
+## minio-data 为数据目录，需要运行前创建好，且具有读写权限。API端口（对外服务使用的）是80，管理端口（Minio官方称为console端口）是9002，这两个端口都可以改成别的端口。
+./minio server --address :80  --console-address :9002 /minio-data
 ```
 运行成功后会有如下的提示
 ```
@@ -51,7 +51,7 @@ Object API (Amazon S3 compatible):
 
 > 最后两个参数为AK/SK，需要使用正确的值，第二步启动的控制台日志中会有。
 
-> 如果Minio服务的端口不是80，请在命令中的地址加上端口。
+> 如果Minio服务的API端口不是80，请在命令中的地址加上端口。注意不是管理端口，不要写错了。
 
 #### 3. 更新Minio的野火IM配置
 ```
@@ -72,7 +72,7 @@ Object API (Amazon S3 compatible):
 ```
 
 #### 5. 新建bucket
-用浏览器打开```http://47.52.118.96:9002```（这里作为示例，实际使用时请替换IP和端口），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket，创建至少2个bucket（建议每个桶建一个，桶的列表见下面配置），如下图所示：
+用浏览器打开```http://47.52.118.96:9002```（这里作为示例，实际使用时请替换IP和管理端口），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket，创建至少2个bucket（建议每个桶建一个，桶的列表见下面配置），如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
 设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加如下，注意升级部署也需要再次设置
@@ -90,7 +90,7 @@ media.server.media_type 3
 
 ## minio服务地址，要求是域名或者公网IP，不用加http头
 media.server_url  47.52.118.96
-## 如果是非80端口，需要在这里配置，不能写到server_url中去，另外下面media.bucket_XXXX_domain的地址也要加上端口。
+## 下面配置API端口，不能写到server_url中去。如果API端口非80，下面media.bucket_XXXX_domain的地址也要加上API端口。
 media.server_port 80
 media.server_ssl_port 443
 ## AK/SK minio服务启动时会打印出来AK/SK，默认是minioadmin，需求修改复杂字符串。
@@ -99,7 +99,7 @@ media.secret_key minioadmin
 
 ## bucket名字
 media.bucket_general_name media
-## domain为minio服务器地址/bucket名字,不是服务器地址/minio/bucket名字。如果非80端口还要加上端口号。
+## domain为minio服务器地址/bucket名字,不是服务器地址/minio/bucket名字。如果API端口非80还要加上端口号。
 media.bucket_general_domain http://47.52.118.96/media
 media.bucket_image_name media
 media.bucket_image_domain http://47.52.118.96/media
@@ -120,23 +120,23 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 ```
 > 上述参数为示例参数，请替换为客户对应的参数。
 
-> bucket media/storage为示例，客户实际使用时可以使用不同的名称。但至少要创建2个用来存储长期保存和短期保存的媒体文件，建议为上述9类每类创建一个bucket。
+> bucket media/storage为示例，客户实际使用时可以使用不同的名称。但至少要创建2个用来存储长期保存和短期保存的媒体文件，建议为上述9类每类创建一个bucket，这样才能更精细化地处理媒体文件。
 
-> 上传必须支持http上传（因为移动端和PC端只能支持http上传，不用担心安全问题，因为数据是经过加密过的），因此不能屏蔽掉http访问，media.bucket_XXXX_domain建议增加https的支持。
+> 上传必须支持http上传（因为移动端和PC端只能支持http上传，不用担心安全问题，因为数据是经过加密过的），因此不能屏蔽掉http访问，media.bucket_XXXX_domain建议增加https的支持（后面有HTTPS支持的说明)。
 
 
 #### 7. 验证上传下载是否正常。
 验证发送图片/语音/视频/文件等媒体类消息，验证修改用户头像，验证大文件上传。
 
 #### 8. 配置HTTPS
-野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传。在client层上传时没有经过加密，所以为了安全需要配置HTTPS，通过HTTPS进行上传。因此需要配置minio服务同时支持http和https（http必须保留，因为移动端和pc端协议栈还需要使用）。配置方向见下面说明。
+野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传，在client层上传时没有经过加密。另外文件下载时也是没有加密的。所以为了安全需要配置HTTPS，通过HTTPS进行大文件上传和所有文件下载。因此需要配置minio服务同时支持http和https（http必须保留，因为移动端和pc端协议栈还需要使用）。配置方向见下面说明。
 
 ## 进阶配置
 #### 1. 使用域名
 配置域名解析到minio服务器，然后IM服务配置文件中的IP替换成域名。这样如果以后迁移存储服务也不会有问题。
 
 #### 2. 集群部署
-只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档。
+只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档，按照minio官方部署集群后还需要按照上面说明对接野火IM。
 
 #### 3. 配置https
 客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。首先用如下命令启动，更换minio服务的端口为9000
@@ -152,7 +152,7 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 
 ## 常见问题
 #### 1. 使用nginx反向代理后，不能发送大文件
-这是因为nginx默认不能发送大文件，请把最大文件限制改为2G，最大超时时间改为60分钟。如下所示：
+这是因为nginx默认不能发送大文件，请把最大文件限制改为4G或者更大，最大超时时间改为60分钟以上。如下所示：
 ```
 #上传文件大小限制
 client_max_body_size 4096M;
@@ -160,7 +160,7 @@ client_max_body_size 4096M;
 #设置为on表示启动高效传输文件的模式
 sendfile on;
 
-#保持连接的时间，默认65s
+#保持连接的时间，保持60分钟以上
 keepalive_timeout 3600;
 ```
 #### 2. 上传文件失败，minio服务抛出异常
@@ -183,7 +183,7 @@ IM服务内默认使用的region是```us-east-1 ```，是默认的minio的region
 #### 5. 其它问题
 如果还是无法解决问题，请把minio控制台日志和tcpdump日志一起发给我们。抓去tcpdump日志的命令如下：
 ```
-tcpdump -w minio.pcap
+sudo tcpdump -w minio.pcap
 ```
 客户端操作，等待失败后，ctrl+c结束命令，日志在当前目录的minio.pcap文件。
 
