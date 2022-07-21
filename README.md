@@ -45,7 +45,7 @@ Object API (Amazon S3 compatible):
 
 #### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名
 ```shell script
-./main alias set myminio http://47.52.118.96 minioadmin minioadmin
+./mc alias set myminio http://47.52.118.96 minioadmin minioadmin
 ```
 > 可以在Minio服务所在的机器上本地运行也可以远程执行。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
 
