@@ -43,7 +43,7 @@ Object API (Amazon S3 compatible):
 ```
 > 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。由于需要用到80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。可能会提醒密码简单需要修改初始密码。
 
-#### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名
+#### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名。如果minio启动使用的端口非80请在地址上加上对应端口。
 ```shell script
 ./mc alias set myminio http://47.52.118.96 minioadmin minioadmin
 ```
