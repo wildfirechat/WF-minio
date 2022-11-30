@@ -89,7 +89,7 @@ Object API (Amazon S3 compatible):
 media.server.media_type 3
 
 ## minio服务地址，要求是域名或者公网IP，不用加http头
-media.server_url  47.52.118.96
+media.server_host  47.52.118.96
 ## 下面配置API端口，不能写到server_url中去。如果API端口非80，下面media.bucket_XXXX_domain的地址也要加上API端口。
 media.server_port 80
 media.server_ssl_port 443
@@ -129,7 +129,7 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 验证发送图片/语音/视频/文件等媒体类消息，验证修改用户头像，验证大文件上传。
 
 #### 8. 配置HTTPS
-野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传，在client层上传时没有经过加密。另外文件下载时也是没有加密的。所以为了安全需要配置HTTPS，通过HTTPS进行大文件上传和所有文件下载。因此需要配置minio服务同时支持http和https（http必须保留，因为移动端和pc端协议栈还需要使用）。配置方向见下面说明。
+野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传，在client层上传时没有经过加密。另外文件下载时也是没有加密的。所以为了安全需要配置HTTPS，通过HTTPS进行大文件上传和所有文件下载。因此需要配置minio服务同时支持http和https（http必须保留，因为移动端和pc端协议栈还需要使用）。配置见下面说明。
 
 ## 进阶配置
 #### 1. 使用域名
@@ -145,7 +145,9 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 ```
 然后配置nginx，反向代理到80端口，另外反向代理到443并配置证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
-最后就是修改配置文件```media.server_url```保持不变，```media.bucket_XXXX_domain```改为https对应地址，```media.server_ssl_port```为ssl的端口。
+最后就是修改配置文件```media.server_host```Nginx的公网host，```media.bucket_XXXX_domain```改为https对应地址，```media.server_ssl_port```为ssl的端口。
+
+因为客户端是直连minio进行上传下载的，不是通过IM服务中转的，所以```media.server_host```必须是客户端可以访问的。另外NG转发需要把所有的内容都转到minio服务去，可以参考野火提供的[示例](./nginx/minio.conf)。
 
 #### 4. 配置CDN加速
 如果客户比较多，且全国甚至全世界分别比较广，使用dns能够提高下载速度，提高用户体验。可以对下载进行dns加速，然后正确配置```media.bucket_XXXX_domain```。
