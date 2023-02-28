@@ -166,10 +166,10 @@ sendfile on;
 keepalive_timeout 3600;
 ```
 #### 2. 上传文件失败，minio服务抛出异常
-检查日志异常调用栈中是否有```get user secret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
+检查minio控制台日志异常调用栈中是否有```get user secret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
 
 #### 3. 使用nginx反向代理没有转发header
-header中带有用户id信息，这样minio可以查找到对应用户id的密钥，用来解密上传的内容。请确保转发时带上所有header，下面为参考配置 ：
+header中带有用户id信息，这样minio可以查找到对应用户id的密钥，用来解密上传的内容。***请确保转发时带上所有header***，下面为参考配置 ：
 ```
 location / {
         proxy_set_header  Host  $http_host;
