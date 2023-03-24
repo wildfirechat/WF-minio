@@ -12,7 +12,7 @@
 OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。OSS服务还有一个管理端口，仅用于Minio管理后台登陆管理，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。
 
 ## 升级方法
-如果已经部署2023.3.24之前的版本，部署最新版本时需要按照[minio官方文档](https://min.io/docs/minio/linux/operations/install-deploy-manage/migrate-fs-gateway.html)进行升级
+如果已经部署2023.3.24之前的版本，部署最新版本时需要按照[minio官方文档](https://min.io/docs/minio/linux/operations/install-deploy-manage/migrate-fs-gateway.html)进行升级。旧版本保留在```legacy_20230324```分支。
 
 ## 首次部署
 
