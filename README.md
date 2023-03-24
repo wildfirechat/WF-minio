@@ -12,26 +12,21 @@
 OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。OSS服务还有一个管理端口，仅用于Minio管理后台登陆管理，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。
 
 ## 升级方法
-如果已经部署需要按照升级步骤进行。升级方法：
-1. 停掉minio服务。
-2. 备份```~/.minio```和```${minio_data_path}/.minio.sys```目录。备份旧的程序文件。
-3. 备份```~/.mc```目录。备份旧的```mc```程序文件。
-4. 启动新的minio服务器，验证工作是否正常。
-5. 如果部署失败，恢复旧的程序文件和步骤2的两个文件夹。另外```mc```的备份也需要恢复。
+如果已经部署2023.3.24之前的版本，部署最新版本时需要按照[minio官方文档](https://min.io/docs/minio/linux/operations/install-deploy-manage/migrate-fs-gateway.html)进行升级
 
 ## 首次部署
 
 #### 1.启动野火Minio服务
 ```sh
-## minio-data 为数据目录，需要运行前创建好，且具有读写权限。API端口（对外服务使用的）是80，管理端口（Minio官方称为console端口）是9002，这两个端口都可以改成别的端口。
-./minio server --address :80  --console-address :9002 /minio-data
+## minio-data 为数据目录，需要运行前创建好，且具有读写权限。API端口（对外服务使用的）是9000，管理端口（Minio官方称为console端口）是9002，这两个端口都可以改成别的端口。
+./minio server --address :9000  --console-address :9002 /minio-data
 ```
 运行成功后会有如下的提示
 ```
-Endpoint:  http://10.255.20.59  http://127.0.0.1
+Endpoint:  http://10.255.20.59:9000  http://127.0.0.1:9000
 
 Browser Access:
-   http://10.255.20.59  http://127.0.0.1
+   http://10.255.20.59:9000  http://127.0.0.1:9000
 
 Object API (Amazon S3 compatible):
    Go:         https://docs.min.io/docs/golang-client-quickstart-guide
@@ -41,17 +36,17 @@ Object API (Amazon S3 compatible):
    .NET:       https://docs.min.io/docs/dotnet-client-quickstart-guide
 
 ```
-> 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。由于需要用到80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。可能会提醒密码简单需要修改初始密码。
+> 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。如果端口小于1000，比如80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。可能会提醒密码简单需要修改初始密码。
 
-#### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名。如果minio启动使用的端口非80请在地址上加上对应端口。
+#### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名。
 ```shell script
-./mc alias set myminio http://47.52.118.96 minioadmin minioadmin
+./mc alias set myminio http://47.52.118.96:9000 minioadmin minioadmin
 ```
 > 可以在Minio服务所在的机器上本地运行也可以远程执行。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
 
 > 最后两个参数为AK/SK，需要使用正确的值，第二步启动的控制台日志中会有。
 
-> 如果Minio服务的API端口不是80，请在命令中的地址加上端口。注意不是管理端口，不要写错了。
+> 注意端口是API端口9000，不是管理端口，不要写错了。
 
 #### 3. 更新Minio的野火IM配置
 ```
@@ -72,11 +67,13 @@ Object API (Amazon S3 compatible):
 ```
 
 #### 5. 新建bucket
-用浏览器打开```http://47.52.118.96:9002```（这里作为示例，实际使用时请替换IP和管理端口），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点右下角的```+```，选择创建bucket，创建至少2个bucket（建议每个桶建一个，桶的列表见下面配置），如下图所示：
+用浏览器打开```http://47.52.118.96:9002```（这里作为示例，实际使用时请替换IP和管理端口），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点左上角的```Create Bucket```按钮，创建bucket。创建至少2个bucket（建议每个桶建一个，桶的列表见下面配置），如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
-设置权限,点击bucket右侧的菜单按钮，选择```Edit policy```，弹出如下图界面，选择```Add```添加如下，注意升级部署也需要再次设置
+设置权限,点击bucket进入bucket详情也没，按照图上步骤说明为匿名用户添加桶的读权限。
 ![edit_policy](./asset/bucket_policy.png)
+
+> 建议桶的策略是私有写公开读的，这样消息中的资源就可以被客户端直接访问。如果想要增加安全性，可以设置成私有读写，客户端需要先获取认证后再访问，详情请参考野火文档安全说明。
 
 配置完bucket以后，就可以防火墙关掉控制台端口的入访权限，保证数据安全。
 
@@ -91,8 +88,9 @@ media.server.media_type 3
 ## minio服务地址，要求是域名或者公网IP，不用加http头
 media.server_host  47.52.118.96
 ## 下面配置API端口，不能写到server_url中去。如果API端口非80，下面media.bucket_XXXX_domain的地址也要加上API端口。
-media.server_port 80
-media.server_ssl_port 443
+media.server_port 9000
+## web客户端，小程序客户端和大文件上传需要用到https，请配置nginx支持https，关于https后面有说明
+media.server_ssl_port 9443
 ## AK/SK minio服务启动时会打印出来AK/SK，默认是minioadmin，需求修改复杂字符串。
 media.access_key minioadmin
 media.secret_key minioadmin
@@ -100,23 +98,23 @@ media.secret_key minioadmin
 ## bucket名字
 media.bucket_general_name media
 ## domain为minio服务器地址/bucket名字,不是服务器地址/minio/bucket名字。如果API端口非80还要加上端口号。
-media.bucket_general_domain http://47.52.118.96/media
+media.bucket_general_domain http://47.52.118.96:9000/media
 media.bucket_image_name media
-media.bucket_image_domain http://47.52.118.96/media
+media.bucket_image_domain http://47.52.118.96:9000/media
 media.bucket_voice_name media
-media.bucket_voice_domain http://47.52.118.96/media
+media.bucket_voice_domain http://47.52.118.96:9000/media
 media.bucket_video_name media
-media.bucket_video_domain http://47.52.118.96/media
+media.bucket_video_domain http://47.52.118.96:9000/media
 media.bucket_file_name media
-media.bucket_file_domain http://47.52.118.96/media
+media.bucket_file_domain http://47.52.118.96:9000/media
 media.bucket_sticker_name media
-media.bucket_sticker_domain http://47.52.118.96/media
+media.bucket_sticker_domain http://47.52.118.96:9000/media
 media.bucket_moments_name media
-media.bucket_moments_domain http://47.52.118.96/media
+media.bucket_moments_domain http://47.52.118.96:9000/media
 media.bucket_portrait_name storage
-media.bucket_portrait_domain http://47.52.118.96/storage
+media.bucket_portrait_domain http://47.52.118.96:9000/storage
 media.bucket_favorite_name storage
-media.bucket_favorite_domain http://47.52.118.96/storage
+media.bucket_favorite_domain http://47.52.118.96:9000/storage
 ```
 > 上述参数为示例参数，请替换为客户对应的参数。
 
@@ -139,13 +137,13 @@ media.bucket_favorite_domain http://47.52.118.96/storage
 只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档，按照minio官方部署集群后还需要按照上面说明对接野火IM。
 
 #### 3. 配置https
-客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。首先用如下命令启动，更换minio服务的端口为9000
+客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。首先用如下命令启动，minio服务的端口为9000
 ```
 ./minio server --address :9000 --console-address :9002 /minio-data
 ```
 然后配置nginx，反向代理到80端口，另外反向代理到443并配置证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
-最后就是修改配置文件```media.server_host```Nginx的公网host，```media.bucket_XXXX_domain```改为https对应地址，```media.server_ssl_port```为ssl的端口。
+最后就是修改配置文件```media.server_host```Nginx的公网host，```media.bucket_XXXX_domain```改为https对应地址，```media.server_port```为NG的http端口，```media.server_ssl_port```为NG的ssl的端口。
 
 因为客户端是直连minio进行上传下载的，不是通过IM服务中转的，所以```media.server_host```必须是客户端可以访问的。另外NG转发需要把所有的内容都转到minio服务去，可以参考野火提供的[示例](./nginx/minio.conf)。
 
@@ -180,7 +178,7 @@ location / {
 ```
 
 #### 4. 不要修改minio的region
-IM服务内默认使用的region是```us-east-1 ```，是默认的minio的region，请使用这个默认的region，不能修改为其他值。这个值实际使用上没有其他的意义。
+不要修改minio的region，不能修改为其他值。这个值实际使用上没有其他的意义。
 
 #### 5. 其它问题
 如果还是无法解决问题，请把minio控制台日志和tcpdump日志一起发给我们。抓去tcpdump日志的命令如下：
