@@ -36,7 +36,7 @@ Object API (Amazon S3 compatible):
    .NET:       https://docs.min.io/docs/dotnet-client-quickstart-guide
 
 ```
-> 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。如果端口小于1000，比如80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。可能会提醒密码简单需要修改初始密码。
+> 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。如果端口小于1000，比如80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。默认AK/SK是比较简单的，正式上线前需要改为复杂字符串
 
 #### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名。
 ```shell script
@@ -44,7 +44,7 @@ Object API (Amazon S3 compatible):
 ```
 > 可以在Minio服务所在的机器上本地运行也可以远程执行。另外```myminio```是服务的别名，可以任意起名，后面需要用到，如果在一台电脑操作多个minio服务，注意别名不要重复
 
-> 最后两个参数为AK/SK，需要使用正确的值，第二步启动的控制台日志中会有。
+> 最后两个参数为AK/SK，需要使用正确的值，第一步启动的控制台日志中会有。
 
 > 注意端口是API端口9000，不是管理端口，不要写错了。
 
