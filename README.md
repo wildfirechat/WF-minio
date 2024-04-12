@@ -3,10 +3,10 @@
 野火Minio是基于最流行的开源对象存储服务[Minio](https://github.com/minio/minio)进行二次开发的，二次开发的内容仅涉及到与野火IM的对接。因此野火Minio可以按照原生Minio的使用和运维，仅有部分关于IM的配置在首次启动后需要配置。***野火Minio依赖于专业版，适合对安全性能要求很高的私有化部署，社区版不支持。***
 
 ## 运行方式
-1. 上传：客户端需要上传时，先调用IM服务获取上传的token，IM服务根据配置里的信息计算出一个token（不需要与OSS进行调用）返回给客户端，客户端用自己的私钥把数据加密后用IM服务返回的token直接上传到OSS服务。OSS收到请求后验证token，验证通过后，在去通过IM服务的API获取用户的私钥进行解密保存文件。
+1. 上传：客户端需要上传时，先调用IM服务获取上传的token，IM服务根据配置里的信息计算出一个token（不需要与OSS进行调用）返回给客户端，客户端用自己的私钥把数据加密后用IM服务返回的token直接上传到OSS服务。OSS收到请求后验证token，验证通过后，再去通过IM服务的API获取用户的私钥进行解密保存文件。
 2. 下载：客户端直接请求OSS服务。如果bucket禁止非授权访问，客户端可以调用getAuthorizedMediaUrl方法来获取经过授权的URI进行访问，这个如上传一样，由服务器端计算出授权。一般建议头像和动态表情运行非授权访问，其它重要文件可以配置成授权访问。
 
-综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过server api进行。
+综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过IM服务的server api进行。
 
 ## 环境要求
 OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。OSS服务还有一个管理端口，仅用于Minio管理后台登陆管理，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。
@@ -52,7 +52,7 @@ Object API (Amazon S3 compatible):
 ```
 ./mc admin config set myminio WFChat IMAdminUrl=http://${im_server_address}:18080/admin/minio/sk IMAdminSecret=${im_server_admin_secret}
 ```
-> IMAdminUrl是server api地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对应修改。IMAdminSecret为server api的密钥。
+> IMAdminUrl是IM服务的server api地址，建议用内网地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对应修改。IMAdminSecret为IM服务的server api的密钥。
 
 如果IM服务使用国密加密，需要执行下面操作开启国密加密。注意只有特殊客户才配置此项，普通客户请忽略此配置。
 ```
@@ -141,7 +141,7 @@ media.bucket_favorite_domain http://47.52.118.96:9000/storage
 ```
 ./minio server --address :9000 --console-address :9002 /minio-data
 ```
-然后配置nginx，同时监听 80 和 443 端口(这两个端口可以是其他端口，但要和 im-server 配置文件里面的`media.server_port`和`media.server_ssl_port`对应上)，其中443 端口需要配置ssl证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
+然后配置nginx，同时监听 80 和 443 端口(这两个端口也可以更换为其他端口，需要和 im-server 配置文件里面的`media.server_port`和`media.server_ssl_port`保持一致)，其中443 端口需要配置ssl证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
 最后就是修改配置文件```media.server_host```Nginx的公网host，```media.bucket_XXXX_domain```改为https对应地址，```media.server_port```为NG的http端口，```media.server_ssl_port```为NG的ssl的端口。
 
@@ -164,7 +164,7 @@ sendfile on;
 keepalive_timeout 3600;
 ```
 #### 2. 上传文件失败，minio服务抛出异常
-检查minio控制台日志异常调用栈中是否有```get user secret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。
+检查minio控制台日志异常调用栈中是否有```get user secret```字段。如果有则说明是minio调用im服务获取用户密钥失败，检查minio服务是否可以访问im服务的管理端口（默认是18080），管理密钥是否正确等。也常见于修改了IM服务的管理密钥，忘记更新minio服务配置中的IM服务的管理密钥。
 
 #### 3. 使用nginx反向代理没有转发header
 header中带有用户id信息，这样minio可以查找到对应用户id的密钥，用来解密上传的内容。***请确保转发时带上所有header***，下面为参考配置 ：
