@@ -141,7 +141,7 @@ media.bucket_favorite_domain http://47.52.118.96:9000/storage
 ```
 ./minio server --address :9000 --console-address :9002 /minio-data
 ```
-然后配置nginx，反向代理到80端口，另外反向代理到443并配置证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
+然后配置nginx，同时监听 80 和 443 端口(这两个端口可以是其他端口，但要和 im-server 配置文件里面的`media.server_port`和`media.server_ssl_port`对应上)，其中443 端口需要配置ssl证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
 最后就是修改配置文件```media.server_host```Nginx的公网host，```media.bucket_XXXX_domain```改为https对应地址，```media.server_port```为NG的http端口，```media.server_ssl_port```为NG的ssl的端口。
 
