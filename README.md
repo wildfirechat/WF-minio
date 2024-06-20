@@ -16,7 +16,7 @@ OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行
 
 ## 首次部署
 #### 1. 下载Minio服务版本
-需要使用野火提供的Minio服务，不能用Minio官方的版本。请从本项目[release](./release)目录下下载对应版本的Minio服务。
+需要使用野火提供的Minio服务，不能用Minio官方的版本。请从本项目[minio_release](./minio_release)目录下下载对应版本的Minio服务。
 
 #### 2. 启动野火Minio服务
 ```sh
