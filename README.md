@@ -15,10 +15,13 @@ OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行
 如果已经部署2023.3.24之前的版本，部署最新版本时需要按照[minio官方文档](https://min.io/docs/minio/linux/operations/install-deploy-manage/migrate-fs-gateway.html)进行升级。旧版本保留在```legacy_20230324```分支。
 
 ## 首次部署
+#### 1. 下载Minio服务版本
+需要使用野火提供的Minio服务，不能用Minio官方的版本。请从本项目[release](./release)目录下下载对应版本的Minio服务。
 
-#### 1.启动野火Minio服务
+#### 2. 启动野火Minio服务
 ```sh
 ## minio-data 为数据目录，需要运行前创建好，且具有读写权限。API端口（对外服务使用的）是9000，管理端口（Minio官方称为console端口）是9002，这两个端口都可以改成别的端口。
+## 如果目录/minio-data已经被其他版本的Minio服务启动过，可能需要进行数据迁移或者清空内容，防止有兼容问题产生。
 ./minio server --address :9000  --console-address :9002 /minio-data
 ```
 运行成功后会有如下的提示
@@ -38,7 +41,7 @@ Object API (Amazon S3 compatible):
 ```
 > 如果没有可执行权限，使用```chmod a+x minio```来添加可执行权限。如果端口小于1000，比如80端口，在linux机器上使用root权限，使用```root```用户或者```sudo```命令来运行。默认AK/SK是比较简单的，正式上线前需要改为复杂字符串
 
-#### 2. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名。
+#### 3. 解压mc目录下的```mc```工具。增加可执行权限，然后执行下面语句为Minio服务设置别名。
 ```shell script
 ./mc alias set myminio http://47.52.118.96:9000 minioadmin minioadmin
 ```
@@ -48,7 +51,7 @@ Object API (Amazon S3 compatible):
 
 > 注意端口是API端口9000，不是管理端口，不要写错了。
 
-#### 3. 更新Minio的野火IM配置
+#### 4. 更新Minio的野火IM配置
 ```
 ./mc admin config set myminio WFChat IMAdminUrl=http://${im_server_address}:18080/admin/minio/sk IMAdminSecret=${im_server_admin_secret}
 ```
@@ -60,13 +63,13 @@ Object API (Amazon S3 compatible):
 ```
 > 如果要关闭，on改成off就可以了
 
-#### 4. 重启野火Minio服务
+#### 5. 重启野火Minio服务
 重启服务，好让设置生效，必须重启才行。使用如下命令重启
 ```
 ./mc admin service restart myminio
 ```
 
-#### 5. 新建bucket
+#### 6. 新建bucket
 用浏览器打开```http://47.52.118.96:9002```（这里作为示例，实际使用时请替换IP和管理端口），如果是升级部署可以看见之前存在的bucket，内部数据都存在，不用再创建bucket，如果是首次部署则为空。点左上角的```Create Bucket```按钮，创建bucket。创建至少2个bucket（建议每个桶建一个，桶的列表见下面配置），如下图所示：
 ![bucket list](./asset/bucket_list.png)
 
@@ -77,7 +80,7 @@ Object API (Amazon S3 compatible):
 
 配置完bucket以后，就可以防火墙关掉控制台端口的入访权限，保证数据安全。
 
-#### 6. 配置野火IM
+#### 7. 配置野火IM
 野火IM的配置请参考专业版野火IM部署说明，***更改完配置后重启IM服务***。
 ```
 ##存储使用类型，0使用内置文件服务器（仅供用于研发测试），1使用七牛云存储，2使用阿里云对象存储，3野火私有对象存储
@@ -123,10 +126,10 @@ media.bucket_favorite_domain http://47.52.118.96:9000/storage
 > 上传必须支持http上传（因为移动端和PC端只能支持http上传，不用担心安全问题，因为数据是经过加密过的），因此不能屏蔽掉http访问，media.bucket_XXXX_domain建议增加https的支持（后面有HTTPS支持的说明)。
 
 
-#### 7. 验证上传下载是否正常。
+#### 8. 验证上传下载是否正常。
 验证发送图片/语音/视频/文件等媒体类消息，验证修改用户头像，验证大文件上传。
 
-#### 8. 配置HTTPS
+#### 9. 配置HTTPS
 野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传，在client层上传时没有经过加密。另外文件下载时也是没有加密的。所以为了安全需要配置HTTPS，通过HTTPS进行大文件上传和所有文件下载。因此需要配置minio服务同时支持http和https（http必须保留，因为移动端和pc端协议栈还需要使用）。配置见下面说明。
 
 ## 进阶配置
