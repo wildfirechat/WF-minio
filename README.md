@@ -140,13 +140,15 @@ media.bucket_favorite_domain http://47.52.118.96:9000/storage
 只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档，按照minio官方部署集群后还需要按照上面说明对接野火IM。
 
 #### 3. 配置https
-客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。首先用如下命令启动，minio服务的端口为9000
+客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。总结一下，***Minio服务必须提供HTTP服务，建议同时支持HTTPS服务。***
+
+首先用如下命令启动，minio服务的端口为9000
 ```
 ./minio server --address :9000 --console-address :9002 /minio-data
 ```
 然后配置nginx，同时监听 80 和 443 端口(这两个端口也可以更换为其他端口，需要和 im-server 配置文件里面的`media.server_port`和`media.server_ssl_port`保持一致)，其中443 端口需要配置ssl证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
 
-最后就是修改配置文件```media.server_host```Nginx的公网host，```media.bucket_XXXX_domain```改为https对应地址，```media.server_port```为NG的http端口，```media.server_ssl_port```为NG的ssl的端口。
+最后就是修改配置文件```media.server_host```Nginx反向代理的Minio的host地址，```media.bucket_XXXX_domain```改为HTTPS对应地址，```media.server_port```为NG的HTTP端口，```media.server_ssl_port```为NG的HTTPS的端口。
 
 因为客户端是直连minio进行上传下载的，不是通过IM服务中转的，所以```media.server_host```必须是客户端可以访问的。另外NG转发需要把所有的内容都转到minio服务去，可以参考野火提供的[示例](./nginx/minio.conf)。
 
@@ -180,22 +182,25 @@ location / {
 }
 ```
 
-#### 4. 不要修改minio的region
+#### 4. 使用了NG反向代理，没有提供HTTP服务
+这个也是常见的部署问题，如果PC客户端/Web客户端能够正常发送图片文件，且移动端能够发送超过100MB的文件，但移动端发送小文件失败，那就是这个错误了。如果使用Nginx反向代理或者其他类似工具，需要同时提供HTTP和HTTPS支持，不能关掉HTTP或者把HTTP强制转为HTTPS。
+
+#### 5. 不要修改minio的region
 不要修改minio的region，不能修改为其他值。这个值实际使用上没有其他的意义。
 
-#### 5. 启动失败
+#### 6. 启动失败
 有可能使用minio的CPU架构不对，比如在X86架构的服务器上使用了Arm64架构的minio，需要用Amd64架构的minio；也有可能是数据目录```/minio-data```被其他版本的Minio创建过，数据不兼容导致启动失败。
 
-#### 6. 国密配置错误
+#### 7. 国密配置错误
 国密一般是不开启的，请保持国密为关。如果要开启，需要跟IM服务和客户端确认，需要三方同时开启才可以，如果有一个不一致，会导致无法连接或者无法上传。
 
-#### 7. Linux最大打开文件数太小
+#### 8. Linux最大打开文件数太小
 当部署在线上，同一个文件有时可以发送，有时发送失败，就需要检查一下是否是```open files```太小，需要同时检查Minio服务器和Nginx服务器，需要保持这个值在10W以上。
 
-#### 8. Nginx或其他网络中间件错误
+#### 9. Nginx或其他网络中间件错误
 如果使用了Nginx或者其他网络中间件，上传文件需要经过它们，因为上传文件跟普通的web操作还是有些区别的，可能某些文件发送会失败。请检查一下这些中间件的日志，看一下是不是收到上传文件的请求，还有失败的原因。上传的路径一般都是```/fs/xxxxxxxxxxx```这种格式。
 
-#### 9. 其它问题
+#### 10. 其它问题
 如果还是无法解决问题，请把客户端协议栈日志、minio服务日志、minio控制台日志、Nginx服务日志（如果有Nginx）和tcpdump日志一起发给我们。抓去tcpdump日志的命令如下：
 ```
 sudo tcpdump -w minio.pcap
