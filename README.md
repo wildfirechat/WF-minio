@@ -212,5 +212,11 @@ sudo tcpdump -w minio.pcap
 ```
 客户端操作，等待失败后，ctrl+c结束命令，日志在当前目录的minio.pcap文件。
 
+查看minio服务日志使用：
+```
+./mc admin trace myminio
+```
+客户端操作就可以看见请求信息，等待失败后，ctrl+c结束命令，把内容拷贝到文件中。
+
 ## 鸣谢
 感谢[Minio](https://github.com/minio/minio)提供如此棒的开源产品
