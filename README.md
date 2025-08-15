@@ -57,7 +57,7 @@ Object API (Amazon S3 compatible):
 ```
 ./mc admin config set myminio WFChat IMAdminUrl=http://${im_server_address}:18080/admin/minio/sk IMAdminSecret=${im_server_admin_secret}
 ```
-> IMAdminUrl是IM服务的server api地址，建议用内网地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对应修改。IMAdminSecret为IM服务的server api的密钥。
+> IMAdminUrl是IM服务的server api地址，建议用内网地址，需要确保minio服务与IM服务管理端口的连通性。18080是默认的管理端口，如果修改过这里也需要对应修改。IMAdminSecret为IM服务的server api的密钥，对应专业版 IM-Server 配置文件里面的 http.admin.secret_key 。
 
 如果IM服务使用国密加密，需要执行下面操作开启国密加密。注意只有特殊客户才配置此项，普通客户请忽略此配置。
 ```
