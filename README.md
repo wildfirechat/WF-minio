@@ -11,7 +11,7 @@
 综上OSS服务需要能够获取到用户的密钥，用来解密客户端加密的信息。获取用户密钥是通过IM服务的server api进行。
 
 ## 环境要求
-OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务需要限制除80/443以外的所有入访。OSS服务还有一个管理端口，仅用于Minio管理后台登陆管理，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。需要确保OSS服务器的[open files](https://www.baidu.com/s?wd=open%20files&pn=10&oq=open%20files&tn=84053098_3_dg&ie=utf-8&rsv_pq=d9134a24014ab4fd&rsv_t=f224EWZ7TThIOSx1hOpCE6YrEd9Fjo3VnNwR5yW44ajId5ZQdo8a1Ghw4RlYKrKS6sKAsA)大小在10W以上。如果使用了Nginx，需要确保Nginx服务器的```open files```大小也在10W以上。
+OSS服务需要独立的公网IP。客户端上传下载都是与OSS服务进行直接连接，不经过IM服务器，如果想要好的体验，需要保证一定的带宽。OSS服务如果通过server api与im服务交互，需要确保服务的连通性，可以限制除了访问IM服务管理端口以外的所有出访。OSS服务仅需开放实际使用的HTTP/HTTPS端口（通常为80/443），并限制其他入访；客户端全部启用TLS时只开放HTTPS端口（通常为443）。OSS服务还有一个管理端口，仅用于Minio管理后台登陆管理，这个需要限制外网访问，仅对特定IP允许访问或者配置完成后禁止外网访问。需要确保OSS服务器的[open files](https://www.baidu.com/s?wd=open%20files&pn=10&oq=open%20files&tn=84053098_3_dg&ie=utf-8&rsv_pq=d9134a24014ab4fd&rsv_t=f224EWZ7TThIOSx1hOpCE6YrEd9Fjo3VnNwR5yW44ajId5ZQdo8a1Ghw4RlYKrKS6sKAsA)大小在10W以上。如果使用了Nginx，需要确保Nginx服务器的```open files```大小也在10W以上。
 
 ## 升级方法
 如果已经部署2023.3.24之前的版本，部署最新版本时需要按照[minio官方文档](https://min.io/docs/minio/linux/operations/install-deploy-manage/migrate-fs-gateway.html)进行升级。旧版本保留在```legacy_20230324```分支。
@@ -125,14 +125,14 @@ media.bucket_favorite_domain http://47.52.118.96:9000/storage
 
 > bucket media/storage为示例，客户实际使用时可以使用不同的名称。但至少要创建2个用来存储长期保存和短期保存的媒体文件，建议为上述9类每类创建一个bucket，这样才能更精细化地处理媒体文件。
 
-> 上传必须支持http上传（因为移动端和PC端只能支持http上传，不用担心安全问题，因为数据是经过加密过的），因此不能屏蔽掉http访问，media.bucket_XXXX_domain建议增加https的支持（后面有HTTPS支持的说明)。
+> 未启用TLS连接方式时，移动端和PC端协议栈使用HTTP上传（数据经过加密），需要保留HTTP访问；客户端全部启用TLS后使用HTTPS上传，只需开放HTTPS。```media.bucket_XXXX_domain```建议配置为HTTPS地址，客户端全部启用TLS时必须配置为HTTPS地址（后面有HTTPS支持的说明）。
 
 
 #### 8. 验证上传下载是否正常。
 验证发送图片/语音/视频/文件等媒体类消息，验证修改用户头像，验证大文件上传。
 
 #### 9. 配置HTTPS
-野火客户端在处理文件上传时有两种情况，一种是小文件，通过协议栈加密后使用http上传；另外一种是大文件，在客户端的client层上传，在client层上传时没有经过加密。另外文件下载时也是没有加密的。所以为了安全需要配置HTTPS，通过HTTPS进行大文件上传和所有文件下载。因此需要配置minio服务同时支持http和https（http必须保留，因为移动端和pc端协议栈还需要使用）。配置见下面说明。
+野火客户端在处理文件上传时有两种情况：小文件通过协议栈加密上传，未启用TLS时使用HTTP，启用TLS后使用HTTPS；大文件在客户端的client层上传，数据未经过野火加密，建议使用HTTPS。文件下载也建议使用HTTPS。因此，存在未启用TLS的移动端或PC客户端时，需要配置minio服务同时支持HTTP和HTTPS；客户端全部启用TLS后，只需开放HTTPS。配置见下面说明。
 
 ## 进阶配置
 #### 1. 使用域名
@@ -142,15 +142,15 @@ media.bucket_favorite_domain http://47.52.118.96:9000/storage
 只有部署集群后，才可以提供高可用，当少于一半的存储磁盘损坏也不会丢失数据。具体部署方法请自行查找Minio官方文档，按照minio官方部署集群后还需要按照上面说明对接野火IM。
 
 #### 3. 配置https
-客户端协议栈上传必须是http，http method是```put```，大文件上传没有加密建议通过https上传，还有下载文件时也可以使用https来增加安全性。总结一下，***Minio服务必须提供HTTP服务，建议同时支持HTTPS服务。***
+客户端协议栈上传的HTTP method是```put```，未启用TLS时使用HTTP，启用TLS后使用HTTPS。大文件上传没有加密，建议通过HTTPS上传，下载文件也建议使用HTTPS。总结一下，***存在未启用TLS的移动端或PC客户端时，Minio服务必须提供HTTP服务；客户端全部启用TLS后，只需提供HTTPS服务。***
 
 首先用如下命令启动，minio服务的端口为9000
 ```
 ./minio server --address :9000 --console-address :9002 /minio-data
 ```
-然后配置nginx，同时监听 80 和 443 端口(这两个端口也可以更换为其他端口，需要和 im-server 配置文件里面的`media.server_port`和`media.server_ssl_port`保持一致)，其中443 端口需要配置ssl证书，这样能够同时支持HTTP/HTTPS双栈，注意转发时要把```http header```都带上。
+然后配置nginx。存在未启用TLS的移动端或PC客户端时，同时监听80和443端口；客户端全部启用TLS时仅监听443端口，不开放Minio的HTTP访问。这些端口也可以更换为其他端口，需要和im-server配置文件里面的`media.server_port`和`media.server_ssl_port`保持一致，其中HTTPS端口需要配置SSL证书。注意转发时要把```http header```都带上。
 
-最后就是修改配置文件```media.server_host```Nginx反向代理的Minio的host地址，```media.bucket_XXXX_domain```改为HTTPS对应地址，```media.server_port```为NG的HTTP端口，```media.server_ssl_port```为NG的HTTPS的端口。
+最后就是修改配置文件```media.server_host```为Nginx反向代理的Minio的host地址，```media.bucket_XXXX_domain```改为HTTPS对应地址，```media.server_port```为NG的HTTP端口（仅供未启用TLS的客户端使用），```media.server_ssl_port```为NG的HTTPS端口。客户端全部启用TLS时，只需对外开放```media.server_ssl_port```对应的HTTPS访问。
 
 因为客户端是直连minio进行上传下载的，不是通过IM服务中转的，所以```media.server_host```必须是客户端可以访问的。另外NG转发需要把所有的内容都转到minio服务去，可以参考野火提供的[示例](./nginx/minio.conf)。
 
@@ -187,8 +187,8 @@ location / {
 }
 ```
 
-#### 5. 使用了NG反向代理，没有提供HTTP服务
-这个也是常见的部署问题，如果PC客户端/Web客户端能够正常发送图片文件，且移动端能够发送超过100MB的文件，但移动端发送小文件失败，那就是这个错误了。如果使用Nginx反向代理或者其他类似工具，需要同时提供HTTP和HTTPS支持，不能关掉HTTP或者把HTTP强制转为HTTPS。
+#### 5. 未启用TLS的客户端无法访问HTTP服务
+如果存在未启用TLS的移动端或PC客户端，这也是常见的部署问题：PC客户端/Web客户端能够正常发送图片文件，且移动端能够发送超过100MB的文件，但移动端发送小文件失败。此时使用Nginx反向代理或者其他类似工具，需要同时提供HTTP和HTTPS支持，不能关掉HTTP或者把HTTP强制转为HTTPS；如果客户端全部启用TLS，则只需提供HTTPS，并应关闭HTTP访问。
 
 #### 6. 不要修改minio的region
 不要修改minio的region，不能修改为其他值。这个值实际使用上没有其他的意义。
